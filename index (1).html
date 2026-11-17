@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Promise</title>
+<meta name="theme-color" content="#101230">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔥</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800;900&family=Spectral:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{--night:#101230;--panel:#181b44;--line:#2c3068;--amber:#ffb43a;--chalk:#ece9f7;--muted:#9c9ac4;--bad:#ff6b7a;--good:#55e0b4;
+--display:'Big Shoulders Display','Arial Narrow',Impact,sans-serif;--body:'Spectral',Georgia,'Times New Roman',serif}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--night) radial-gradient(60rem 28rem at 50% -8%,rgba(255,180,58,.16),transparent 65%) no-repeat;color:var(--chalk);font-family:var(--body);font-size:1.12rem;line-height:1.65;min-height:100vh}
+main{max-width:46rem;margin:0 auto;padding:3.2rem 1.25rem 5rem}
+h1,h2,.display{font-family:var(--display);font-weight:900;text-transform:uppercase;margin:0;line-height:.95;letter-spacing:.01em}
+h1{font-size:clamp(2.7rem,9.5vw,5.4rem);margin-bottom:1.6rem}
+.lead{color:var(--muted);margin:0 0 1.4rem}
+.ref{border-left:3px solid var(--amber);padding-left:1.1rem;margin:0 0 1.8rem}
+textarea,input{width:100%;background:var(--panel);color:var(--chalk);border:2px solid var(--line);border-radius:10px;font:inherit;padding:1rem}
+textarea{min-height:14rem;resize:vertical}
+textarea:focus-visible,input:focus-visible,button:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+.bar{display:flex;gap:1rem;align-items:center;justify-content:space-between;margin-top:.9rem;flex-wrap:wrap}
+.count{color:var(--muted);font-size:.95rem}
+button{font-family:var(--display);font-weight:800;font-size:1.35rem;text-transform:uppercase;letter-spacing:.03em;background:var(--amber);color:var(--night);border:0;border-radius:8px;padding:.55rem 1.6rem;cursor:pointer}
+button.ghost{background:transparent;color:var(--chalk);border:2px solid var(--line)}
+#result{margin-top:1.6rem;background:var(--panel);border:2px solid var(--line);border-radius:10px;padding:1.1rem 1.2rem}
+#result[hidden]{display:none}
+.msg{font-family:var(--display);font-weight:800;font-size:1.5rem;text-transform:uppercase;margin:0 0 .6rem;color:var(--bad)}
+.words span{margin-right:.28em;display:inline-block}
+.bad{color:var(--bad);text-decoration:line-through;text-decoration-thickness:2px}
+.fix{color:var(--good);font-weight:600;border-bottom:2px solid var(--good)}
+.miss{color:var(--good);border:1px dashed var(--good);border-radius:4px;padding:0 .35em}
+.screen{position:fixed;inset:0;display:none;overflow-y:auto;background:var(--night) radial-gradient(60rem 28rem at 50% -8%,rgba(255,180,58,.18),transparent 65%) no-repeat;padding:2.2rem 1.25rem 3rem;z-index:10}
+.screen.on{display:block}
+.wrap{max-width:52rem;margin:0 auto}
+.ask{font-size:clamp(2.2rem,7vw,4.2rem);color:var(--amber);margin-bottom:1.6rem}
+.bigq{font-size:clamp(1.7rem,5vw,3rem);margin-bottom:1rem}
+.bigp{font-size:1.2rem;margin:0 0 2rem}
+.gate label{display:block;margin-bottom:.5rem}
+.gate b{color:var(--amber);font-weight:600}
+.err{color:var(--bad);min-height:1.6rem;margin:.5rem 0 0}
+.shake{animation:shake .4s}
+@keyframes shake{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+#done{text-align:center}
+#done .wrap{min-height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center}
+.done-h{font-size:clamp(4rem,19vw,11rem);color:var(--amber);margin-bottom:1rem}
+.sub{font-size:1.3rem;margin:0 0 .4rem}
+.sign{color:var(--muted);margin:0 0 2rem}
+#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:50}
+@media (prefers-reduced-motion:reduce){.shake{animation:none}}
+</style>
+</head>
+<body>
+
+<main id="start">
+  <h1 id="quote"></h1>
+  <p class="lead">Retype the line above and the paragraph below, word for word. Pasting is off. Press Enter to check.</p>
+  <p class="ref" id="pledge"></p>
+  <label for="ta" class="lead" style="display:block;margin-bottom:.5rem">Your version</label>
+  <textarea id="ta" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="Start typing the whole thing here..."></textarea>
+  <div class="bar">
+    <span class="count" id="count">0 words</span>
+    <button id="checkBtn" type="button">Check</button>
+  </div>
+  <div id="result" role="status" aria-live="polite" hidden>
+    <p class="msg" id="msg"></p>
+    <div class="words" id="words"></div>
+  </div>
+</main>
+
+<section class="screen" id="ask" aria-label="Confirmation">
+  <div class="wrap">
+    <h2 class="ask">Do you deserve it and are you really this person?</h2>
+    <p class="display bigq" id="q2"></p>
+    <p class="bigp" id="p2"></p>
+    <div class="gate">
+      <label for="yes">Type <b>yes i am the same one</b> to sign it.</label>
+      <input id="yes" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="yes i am the same one">
+      <p class="err" id="err" role="alert"></p>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="done" aria-label="Committed">
+  <div class="wrap">
+    <h2 class="done-h">Committed.</h2>
+    <p class="sub">Ab bahas band. Book khol.</p>
+    <p class="sign" id="sign"></p>
+    <button class="ghost" id="again" type="button">Read it again</button>
+  </div>
+</section>
+
+<canvas id="fx"></canvas>
+
+<script>
+const QUOTE = "DISCIPLINE FEELS HEAVY FOR AN HOUR BUT REGRET FEELS HEAVY FOR YEARS.";
+const PLEDGE = "Hey, I am here. I know that I aim a 240+ marks in JEE, wanna go to IIT, become the craziest version of mine and I do study 14 hr a day like CLR MDH, I want a rank under 1000 aur mein itna padhta hu aur deserve karta hu, I am making my promise of drop that mein din raat pagalo ki tarah padhunga, aur mein janta hu ki har baar ki tarah yeh ek short mera pura din khaygi, aur pura saal, is saal bhi 90 percentile pe patak degi.";
+const FULL = QUOTE + " " + PLEDGE;
+const $ = id => document.getElementById(id);
+const norm = w => w.toLowerCase().replace(/[^a-z0-9]/g, "");
+const tokens = s => s.split(/\s+/).map(raw => ({raw, n: norm(raw)})).filter(t => t.n);
+const TARGET = tokens(FULL);
+
+$("quote").textContent = QUOTE;
+$("pledge").textContent = PLEDGE;
+$("q2").textContent = QUOTE;
+$("p2").textContent = PLEDGE;
+
+function diff(a, b){
+  const n = a.length, m = b.length;
+  const dp = Array.from({length: n + 1}, () => new Array(m + 1).fill(0));
+  for(let i = n - 1; i >= 0; i--) for(let j = m - 1; j >= 0; j--)
+    dp[i][j] = a[i].n === b[j].n ? dp[i+1][j+1] + 1 : Math.max(dp[i+1][j], dp[i][j+1]);
+  const ops = []; let dels = [], ins = [];
+  const flush = () => {
+    const k = Math.min(dels.length, ins.length);
+    for(let x = 0; x < k; x++) ops.push({t:"sub", typed: ins[x].raw, fix: dels[x].raw});
+    for(let x = k; x < dels.length; x++) ops.push({t:"del", fix: dels[x].raw});
+    for(let x = k; x < ins.length; x++) ops.push({t:"ins", typed: ins[x].raw});
+    dels = []; ins = [];
+  };
+  let i = 0, j = 0;
+  while(i < n || j < m){
+    if(i < n && j < m && a[i].n === b[j].n){ flush(); ops.push({t:"ok", typed: b[j].raw}); i++; j++; }
+    else if(j >= m || (i < n && dp[i+1][j] >= dp[i][j+1])){ dels.push(a[i]); i++; }
+    else { ins.push(b[j]); j++; }
+  }
+  flush();
+  return ops;
+}
+
+function el(cls, text){ const s = document.createElement("span"); if(cls) s.className = cls; s.textContent = text; return s; }
+
+function check(){
+  const typed = tokens($("ta").value);
+  const box = $("words"); box.textContent = "";
+  $("result").hidden = false;
+  if(!typed.length){ $("msg").textContent = "Nothing typed yet."; return; }
+  let ops = diff(TARGET, typed);
+  let tail = 0;
+  while(tail < ops.length && ops[ops.length - 1 - tail].t === "del") tail++;
+  if(tail > 3) ops = ops.slice(0, ops.length - tail).concat([{t:"tail", n: tail}]);
+  let bad = 0;
+  for(const o of ops){
+    if(o.t === "ok") box.appendChild(el("", o.typed));
+    else {
+      bad++;
+      if(o.t === "sub"){ box.appendChild(el("bad", o.typed)); box.appendChild(el("fix", o.fix)); }
+      else if(o.t === "ins") box.appendChild(el("bad", o.typed));
+      else if(o.t === "del") box.appendChild(el("miss", o.fix));
+      else box.appendChild(el("miss", "..." + o.n + " more words missing"));
+    }
+  }
+  if(bad === 0){ openAsk(); return; }
+  $("msg").textContent = bad + (bad === 1 ? " mistake" : " mistakes") + ". Fix it, press Enter again.";
+}
+
+function openAsk(){
+  $("ask").classList.add("on");
+  $("err").textContent = "";
+  setTimeout(() => $("yes").focus(), 50);
+}
+
+function sign(){
+  const v = tokens($("yes").value).map(t => t.n).join(" ");
+  if(v === "yes i am the same one"){
+    $("ask").classList.remove("on");
+    $("done").classList.add("on");
+    $("sign").textContent = "Signed on " + new Date().toLocaleDateString("en-IN", {day:"numeric", month:"long", year:"numeric"});
+    confetti();
+  } else {
+    $("err").textContent = "Not yet. Type exactly: yes i am the same one";
+    const i = $("yes"); i.classList.remove("shake"); void i.offsetWidth; i.classList.add("shake");
+  }
+}
+
+$("ta").addEventListener("keydown", e => { if(e.key === "Enter" && !e.shiftKey){ e.preventDefault(); check(); } });
+$("ta").addEventListener("input", () => { $("count").textContent = tokens($("ta").value).length + " / " + TARGET.length + " words"; });
+["paste", "drop"].forEach(ev => $("ta").addEventListener(ev, e => {
+  e.preventDefault(); $("result").hidden = false; $("words").textContent = ""; $("msg").textContent = "Paste is off. Type it with your own hands.";
+}));
+$("checkBtn").addEventListener("click", check);
+$("yes").addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); sign(); } });
+$("again").addEventListener("click", () => {
+  $("done").classList.remove("on"); $("ta").value = ""; $("yes").value = "";
+  $("result").hidden = true; $("count").textContent = "0 words"; window.scrollTo(0, 0); $("ta").focus();
+});
+
+function confetti(){
+  if(matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const c = $("fx"), x = c.getContext("2d"), d = devicePixelRatio || 1;
+  c.width = innerWidth * d; c.height = innerHeight * d;
+  const cols = ["#ffb43a", "#ece9f7", "#55e0b4", "#ff6b7a", "#8f94ff"];
+  const P = Array.from({length: 240}, () => ({
+    x: Math.random() * c.width, y: -Math.random() * c.height * .7,
+    w: (6 + Math.random() * 8) * d, h: (10 + Math.random() * 10) * d,
+    vy: (2 + Math.random() * 4) * d, vx: (Math.random() - .5) * 3 * d,
+    r: Math.random() * 6.28, vr: (Math.random() - .5) * .3, c: cols[(Math.random() * cols.length) | 0]
+  }));
+  const t0 = performance.now();
+  (function f(t){
+    x.clearRect(0, 0, c.width, c.height);
+    let alive = 0;
+    for(const p of P){
+      p.x += p.vx; p.y += p.vy; p.r += p.vr;
+      if(p.y < c.height + 40) alive++;
+      x.save(); x.translate(p.x, p.y); x.rotate(p.r); x.fillStyle = p.c; x.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); x.restore();
+    }
+    if(alive && t - t0 < 9000) requestAnimationFrame(f); else x.clearRect(0, 0, c.width, c.height);
+  })(t0);
+}
+
+$("count").textContent = "0 / " + TARGET.length + " words";
+</script>
+</body>
+</html>
